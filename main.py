@@ -42,3 +42,25 @@ for i, (image, label) in enumerate(ds_train.take(9)):
     plt.title("{}".format(format_label(label)))
     plt.axis("off")
 plt.show()
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras import layers
+tf.config.experimental_run_functions_eagerly(True)
+img_augmentation = Sequential(
+    [
+        layers.RandomRotation(factor=0.15),
+        layers.RandomTranslation(height_factor=0.1, width_factor=0.1),
+        layers.RandomFlip(),
+        layers.RandomContrast(factor=0.1),
+    ],
+    name="img_augmentation",
+)
+
+for image, label in ds_train.take(1):
+    for i in range(9):
+        ax = plt.subplot(3, 3, i + 1)
+        aug_img = img_augmentation(tf.expand_dims(image, axis=0),training=True)
+        plt.imshow(aug_img[0].numpy().astype("uint8"))
+        plt.title("{}".format(format_label(label)))
+        plt.axis("off")
+plt.show()
