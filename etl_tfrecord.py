@@ -88,6 +88,7 @@ def parse_tfrecord_fn(example):
 
     return example
 
+
 # for tfrec_num in range(num_tfrecords):
 #     samples = all_files[(tfrec_num * num_samples): ((tfrec_num + 1) * num_samples)]
 #
@@ -121,3 +122,49 @@ for features in parsed_dataset.take(1):
     plt.figure(figsize=(7, 7))
     plt.imshow(features["image"].numpy())
     plt.show()
+
+###############################
+def prepare_sample(features):
+    image = tf.image.resize(features["image"], size=(224, 224))
+    return image, features["char_id"]
+
+
+def get_dataset(filenames, batch_size):
+    dataset = (
+        tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE)
+        .map(parse_tfrecord_fn, num_parallel_calls=AUTOTUNE)
+        .map(prepare_sample, num_parallel_calls=AUTOTUNE)
+        .shuffle(batch_size * 10)
+        .batch(batch_size)
+        .prefetch(AUTOTUNE)
+    )
+    return dataset
+
+
+train_filenames = tf.io.gfile.glob(f"{tfrecords_dir}/*.tfrec")
+batch_size = 32
+epochs = 1
+steps_per_epoch = 50
+AUTOTUNE = tf.data.AUTOTUNE
+
+input_tensor = tf.keras.layers.Input(shape=(224, 224, 1), name="image")
+input_conc = tf.keras.layers.Concatenate()([input_tensor, input_tensor, input_tensor])
+model = tf.keras.applications.EfficientNetB0(
+    input_tensor=input_conc, weights=None, classes=len(label_dictionary)
+)
+
+
+print("compiling model")
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(),
+    loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+    metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
+)
+
+print("fitting model")
+model.fit(
+    x=get_dataset(train_filenames, batch_size),
+    epochs=epochs,
+    steps_per_epoch=steps_per_epoch,
+    verbose=1,
+)
