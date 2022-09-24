@@ -68,10 +68,7 @@ image_feature_description = {
 }
 
 
-
 raw_image_dataset = tf.data.TFRecordDataset('images.tfrecords')
-
-
 
 def _parse_image_function(example_proto):
   # Parse the input tf.train.Example proto using the dictionary above.
