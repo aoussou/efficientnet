@@ -80,28 +80,44 @@ def create_example(image, char_id, image_id):
 def parse_tfrecord_fn(example):
     feature_description = {
         "image": tf.io.FixedLenFeature([], tf.string),
-        "category_id": tf.io.FixedLenFeature([], tf.int64),
+        "char_id": tf.io.FixedLenFeature([], tf.int64),
         "image_id": tf.io.FixedLenFeature([], tf.int64),
     }
     example = tf.io.parse_single_example(example, feature_description)
-    example["image"] = tf.io.decode_jpeg(example["image"], channels=3)
+    example["image"] = tf.io.decode_jpeg(example["image"], channels=1)
+
+    return example
+
+# for tfrec_num in range(num_tfrecords):
+#     samples = all_files[(tfrec_num * num_samples): ((tfrec_num + 1) * num_samples)]
+#
+#     with tf.io.TFRecordWriter(
+#             tfrecords_dir + "/file_%.2i-%i.tfrec" % (tfrec_num, len(samples))
+#     ) as writer:
+#         for image_path in samples:
+#             # print(image_path)
+#             image = tf.io.decode_jpeg(tf.io.read_file(image_path))
+#
+#             split_path = os.path.normpath(image_path).split(os.path.sep)
+#             char = split_path[-2]
+#             file_name = split_path[-1]
+#             image_id = int(Path(file_name).with_suffix('').stem)
+#
+#             char_id = label_dictionary[char]
+#             example = create_example(image, char_id, image_id)
+#             writer.write(example.SerializeToString())
 
 
-for tfrec_num in range(num_tfrecords):
-    samples = all_files[(tfrec_num * num_samples): ((tfrec_num + 1) * num_samples)]
+raw_dataset = tf.data.TFRecordDataset(f"{tfrecords_dir}/file_00-{num_samples}.tfrec")
 
-    with tf.io.TFRecordWriter(
-            tfrecords_dir + "/file_%.2i-%i.tfrec" % (tfrec_num, len(samples))
-    ) as writer:
-        for image_path in samples:
-            # print(image_path)
-            image = tf.io.decode_jpeg(tf.io.read_file(image_path))
+parsed_dataset = raw_dataset.map(parse_tfrecord_fn)
 
-            split_path = os.path.normpath(image_path).split(os.path.sep)
-            char = split_path[-2]
-            file_name = split_path[-1]
-            image_id = int(Path(file_name).with_suffix('').stem)
+for features in parsed_dataset.take(1):
+    for key in features.keys():
+        if key != "image":
+            print(f"{key}: {features[key]}")
 
-            char_id = label_dictionary[char]
-            example = create_example(image, char_id, image_id)
-            writer.write(example.SerializeToString())
+    print(f"Image shape: {features['image'].shape}")
+    plt.figure(figsize=(7, 7))
+    plt.imshow(features["image"].numpy())
+    plt.show()
