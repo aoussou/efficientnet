@@ -25,6 +25,8 @@ all_files = glob.glob(path_pattern)
 
 char_list = os.listdir(images_dir)
 
+label_dictionary = dict(zip(char_list, list(range(len(char_list)))))
+
 num_images = len(all_files)
 num_samples = 4096
 num_tfrecords = num_images // num_samples
@@ -66,12 +68,11 @@ def float_feature_list(value):
     return tf.train.Feature(float_list=tf.train.FloatList(value=value))
 
 
-def create_example(image, example):
+def create_example(image, char_id, image_id):
     feature = {
         "image": image_feature(image),
-        "category_id": int64_feature(example["category_id"]),
-        "id": int64_feature(example["id"]),
-        "image_id": int64_feature(example["image_id"]),
+        "char_id": int64_feature(char_id),
+        "image_id": int64_feature(image_id),
     }
     return tf.train.Example(features=tf.train.Features(feature=feature))
 
@@ -79,34 +80,28 @@ def create_example(image, example):
 def parse_tfrecord_fn(example):
     feature_description = {
         "image": tf.io.FixedLenFeature([], tf.string),
-        "path": tf.io.FixedLenFeature([], tf.string),
-        "area": tf.io.FixedLenFeature([], tf.float32),
-        "bbox": tf.io.VarLenFeature(tf.float32),
         "category_id": tf.io.FixedLenFeature([], tf.int64),
-        "id": tf.io.FixedLenFeature([], tf.int64),
         "image_id": tf.io.FixedLenFeature([], tf.int64),
     }
     example = tf.io.parse_single_example(example, feature_description)
     example["image"] = tf.io.decode_jpeg(example["image"], channels=3)
-    example["bbox"] = tf.sparse.to_dense(example["bbox"])
-    return example
 
-
-"""
-## Generate data in the TFRecord format
-Let's generate the COCO2017 data in the TFRecord format. The format will be
-`file_{number}.tfrec` (this is optional, but including the number sequences in the file
-names can make counting easier).
-"""
 
 for tfrec_num in range(num_tfrecords):
-    samples = annotations[(tfrec_num * num_samples): ((tfrec_num + 1) * num_samples)]
+    samples = all_files[(tfrec_num * num_samples): ((tfrec_num + 1) * num_samples)]
 
     with tf.io.TFRecordWriter(
             tfrecords_dir + "/file_%.2i-%i.tfrec" % (tfrec_num, len(samples))
     ) as writer:
-        for sample in samples:
-            image_path = f"{images_dir}/{sample['image_id']:012d}.jpg"
+        for image_path in samples:
+            # print(image_path)
             image = tf.io.decode_jpeg(tf.io.read_file(image_path))
-            example = create_example(image, image_path, sample)
+
+            split_path = os.path.normpath(image_path).split(os.path.sep)
+            char = split_path[-2]
+            file_name = split_path[-1]
+            image_id = int(Path(file_name).with_suffix('').stem)
+
+            char_id = label_dictionary[char]
+            example = create_example(image, char_id, image_id)
             writer.write(example.SerializeToString())
