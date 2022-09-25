@@ -6,7 +6,7 @@ from pathlib import Path
 from utils import create_example, parse_tfrecord_fn, get_all_image_paths
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
+import random
 
 def write_tfrecords(file_list, save_dir, label_dictionary, num_samples):
 
@@ -29,7 +29,7 @@ def write_tfrecords(file_list, save_dir, label_dictionary, num_samples):
                 save_dir + "/file_%.2i-%i.tfrec" % (tfrec_num, len(samples))
         ) as writer:
             for image_path in samples:
-                print(image_path)
+                # print(image_path)
                 image = tf.io.decode_jpeg(tf.io.read_file(image_path))
 
                 split_path = os.path.normpath(image_path).split(os.path.sep)
@@ -43,13 +43,17 @@ def write_tfrecords(file_list, save_dir, label_dictionary, num_samples):
 
 
 train_dir = "dvpt/etlcdb-image-extractor/etl_data/images/train"
-train_dir = "dev/data/ocr_JP/etlcdb-image-extractor/etl_data/images/train"
+# train_dir = "dev/data/ocr_JP/etlcdb-image-extractor/etl_data/images/train"
 
 val_dir = "dvpt/etlcdb-image-extractor/etl_data/images/val"
-val_dir = "dev/data/ocr_JP/etlcdb-image-extractor/etl_data/images/val"
+# val_dir = "dev/data/ocr_JP/etlcdb-image-extractor/etl_data/images/val"
 
 train_images = get_all_image_paths(train_dir)
 val_images = get_all_image_paths(val_dir)
+
+
+random.shuffle(train_images)
+# random.shuffle(val_images)
 
 home_dir = Path.home()
 home_path = os.fspath(home_dir)
@@ -66,7 +70,7 @@ fp.close()
 
 train_tf_record_dir = os.path.join('tfrecords', 'train')
 val_tf_record_dir = os.path.join('tfrecords', 'val')
-num_samples = 16
+num_samples = 1024
 
 write_tfrecords(train_images, train_tf_record_dir, label_dictionary, num_samples)
 write_tfrecords(val_images, val_tf_record_dir, label_dictionary, num_samples)
