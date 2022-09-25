@@ -11,7 +11,8 @@ print(tf.__version__)
 print("GPUs Available: ", tf.config.list_physical_devices('GPU'))
 print(tf.test.is_gpu_available())
 print(tf.config.list_physical_devices('GPU'))
-
+from tensorflow.keras.models import Sequential
+from tensorflow.keras import layers
 
 def get_dataset(filenames, batch_size):
     dataset = (
@@ -30,17 +31,8 @@ train_tf_record_dir = os.path.join("tfrecords", "train")
 val_tf_record_dir = os.path.join("tfrecords", "val")
 
 train_filenames = tf.io.gfile.glob(f"{train_tf_record_dir}/*.tfrec")
-batch_size = 128
+batch_size = 4
 epochs = 40
-
-train_dir = "dvpt/etlcdb-image-extractor/etl_data/images/train"
-val_dir = "dvpt/etlcdb-image-extractor/etl_data/images/val"
-
-
-
-train_steps_per_epoch = len(get_all_image_paths(train_dir)) // batch_size
-val_steps_per_epoch = len(get_all_image_paths(val_dir)) // batch_size
-
 
 AUTOTUNE = tf.data.AUTOTUNE
 
@@ -48,7 +40,7 @@ train_dataset = (tf.data.TFRecordDataset(
     train_filenames, num_parallel_reads=AUTOTUNE)
                  .map(parse_tfrecord_fn, num_parallel_calls=AUTOTUNE)
                  .map(prepare_sample, num_parallel_calls=AUTOTUNE)
-                 .shuffle(batch_size * 10)
+                 .shuffle(batch_size)
                  .batch(batch_size)
                  .prefetch(AUTOTUNE)
                  )
@@ -74,13 +66,21 @@ callbacks = [checkpoint]
 
 label_dictionary = json.load(open("label_dictionary.json"))
 
-input_tensor = tf.keras.layers.Input(shape=(224, 224, 1), name="image")
-input_conc = tf.keras.layers.Concatenate()([input_tensor, input_tensor, input_tensor])
+img_augmentation = Sequential(
+    [
+        layers.RandomTranslation(height_factor=0.1, width_factor=0.1),
+        layers.RandomContrast(factor=0.1),
+    ],
+    name="img_augmentation",
+)
 
+input_tensor = tf.keras.layers.Input(shape=(224, 224, 1), name="image")
+concatenated_input = tf.keras.layers.Concatenate()([input_tensor, input_tensor, input_tensor])
+x = img_augmentation(concatenated_input)
 strategy = tf.distribute.MirroredStrategy()
 with strategy.scope():
     model = tf.keras.applications.EfficientNetB0(
-        input_tensor=input_conc, weights=None, classes=len(label_dictionary)
+        input_tensor=x, weights=None, classes=len(label_dictionary)
     )
 
     print("compiling model")
@@ -95,10 +95,9 @@ with strategy.scope():
         x=train_dataset,
         epochs=epochs,
         verbose=1,
-        validation_data=val_dataset,
         callbacks=callbacks,
-        steps_per_epoch=train_steps_per_epoch,
-        validation_steps=val_steps_per_epoch
+        validation_data=val_dataset,
+        # validation_steps=val_steps_per_epoch
     )
 
     print("done")
