@@ -3,9 +3,9 @@ import json
 import glob
 import os
 from pathlib import Path
-from utils import create_example, parse_tfrecord_fn
+from utils import create_example, parse_tfrecord_fn, get_all_image_paths
 import matplotlib.pyplot as plt
-
+from tqdm import tqdm
 
 def write_tfrecords(file_list, save_dir, label_dictionary, num_samples):
     num_images = len(file_list)
@@ -16,7 +16,8 @@ def write_tfrecords(file_list, save_dir, label_dictionary, num_samples):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)  # creating TFRecords output folder
 
-    for tfrec_num in range(num_tfrecords):
+    for tfrec_num in tqdm(range(num_tfrecords)):
+
         samples = file_list[(tfrec_num * num_samples): ((tfrec_num + 1) * num_samples)]
 
         with tf.io.TFRecordWriter(
@@ -38,13 +39,22 @@ def write_tfrecords(file_list, save_dir, label_dictionary, num_samples):
 
 # CHECK RECORDS SUCCESSFULLY CREATED
 
-home_dir = Path.home()
-home_path = os.fspath(home_dir)
-train_images_dir = os.path.join(home_path, "dev/data/ocr_JP/etlcdb-image-extractor/etl_data/images/test")
+# home_dir = Path.home()
+# home_path = os.fspath(home_dir)
+#
+# train_images_dir = os.path.join(home_path, )
+# train_path_pattern = os.path.join(train_images_dir, '*', '*.jpg')
+# train_files = glob.glob(train_path_pattern)
+#
+# val_images_dir = os.path.join(home_path, )
+# val_path_pattern = os.path.join(val_images_dir, '*', '*.jpg')
+# val_files = glob.glob(val_path_pattern)
 
-path_pattern = os.path.join(train_images_dir, '*', '*.jpg')
-train_files = glob.glob(path_pattern)
-val_files = train_files
+train_dir = "dvpt/etlcdb-image-extractor/etl_data/images/train"
+train_images_dir = get_all_image_paths(train_dir)
+
+val_dir = "dvpt/etlcdb-image-extractor/etl_data/images/val"
+val_images_dir = get_all_image_paths(val_dir)
 
 char_list = os.listdir(train_images_dir)
 
@@ -58,7 +68,7 @@ fp.close()
 
 train_tf_record_dir = os.path.join('tfrecords', 'train')
 val_tf_record_dir = os.path.join('tfrecords', 'val')
-num_samples = 2**8
+num_samples = 1024
 
 write_tfrecords(train_files, train_tf_record_dir, label_dictionary, num_samples)
 write_tfrecords(val_files, val_tf_record_dir, label_dictionary, num_samples)

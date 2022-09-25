@@ -1,4 +1,20 @@
+import glob
+
 import tensorflow as tf
+from pathlib import Path
+import os
+
+
+def get_all_image_paths(dir_path):
+    home_dir = Path.home()
+    home_path = os.fspath(home_dir)
+
+    full_dir_path = os.path.join(home_path, dir_path)
+    image_path_pattern = os.path.join(full_dir_path, '*', '*.jpg')
+    all_files = glob.glob(image_path_pattern)
+
+    return all_files
+
 
 def image_feature(value):
     """Returns a bytes_list from a string / byte."""
@@ -46,6 +62,7 @@ def parse_tfrecord_fn(example):
     example["image"] = tf.io.decode_jpeg(example["image"], channels=1)
 
     return example
+
 
 def prepare_sample(features):
     image = tf.image.resize(features["image"], size=(224, 224))
