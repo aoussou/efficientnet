@@ -54,26 +54,6 @@ val_dataset = (tf.data.TFRecordDataset(
                )
 
 
-# AUTOTUNE = tf.data.AUTOTUNE
-#
-# train_dataset = (tf.data.TFRecordDataset(
-#     train_filenames, num_parallel_reads=AUTOTUNE)
-#                  .map(parse_tfrecord_fn, num_parallel_calls=AUTOTUNE)
-#                  .map(prepare_sample, num_parallel_calls=AUTOTUNE)
-#                  .shuffle(batch_size)
-#                  .batch(batch_size)
-#                  .prefetch(AUTOTUNE)
-#                  )
-#
-# val_filenames = tf.io.gfile.glob(f"{val_tf_record_dir}/*.tfrec")
-# val_dataset = (tf.data.TFRecordDataset(
-#     val_filenames)
-#                .map(parse_tfrecord_fn)
-#                .map(prepare_sample)
-#                .batch(batch_size)
-#                .prefetch(AUTOTUNE)
-#                )
-
 
 filepath = 'best_model.hdf5'
 
