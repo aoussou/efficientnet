@@ -5,12 +5,12 @@ from pathlib import Path
 import os
 
 
-def get_all_image_paths(dir_path):
+def get_all_image_paths(dir_path, ext="jpg"):
     home_dir = Path.home()
     home_path = os.fspath(home_dir)
 
     full_dir_path = os.path.join(home_path, dir_path)
-    image_path_pattern = os.path.join(full_dir_path, '*', '*.jpg')
+    image_path_pattern = os.path.join(full_dir_path, '*', '*.' + ext)
     all_files = glob.glob(image_path_pattern)
 
     return all_files

@@ -8,9 +8,8 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import random
 
+
 def write_tfrecords(file_list, save_dir, label_dictionary, num_samples):
-
-
     # print(file_list)
 
     num_images = len(file_list)
@@ -42,25 +41,39 @@ def write_tfrecords(file_list, save_dir, label_dictionary, num_samples):
                 writer.write(example.SerializeToString())
 
 
-train_dir = "dvpt/etlcdb-image-extractor/etl_data/images/train"
-# train_dir = "dev/data/ocr_JP/etlcdb-image-extractor/etl_data/images/train"
+train_dir_etl = "dvpt/etlcdb-image-extractor/etl_data/images/train"
+val_dir_etl = "dvpt/etlcdb-image-extractor/etl_data/images/val"
 
-val_dir = "dvpt/etlcdb-image-extractor/etl_data/images/val"
+train_dir_traditional_chinese = "dvpt/handwritting_data_all/traditional_chinese/train"
+val_dir_traditional_chinese = "dvpt/handwritting_data_all/traditional_chinese/val"
+
 # val_dir = "dev/data/ocr_JP/etlcdb-image-extractor/etl_data/images/val"
 
-train_images = get_all_image_paths(train_dir)
-val_images = get_all_image_paths(val_dir)
+train_images_etl = get_all_image_paths(train_dir_etl)
+val_images_etl = get_all_image_paths(val_dir_etl)
 
+train_images_traditional_chinese = get_all_image_paths(train_dir_traditional_chinese,ext='png')
+val_images_traditional_chinese = get_all_image_paths(val_dir_traditional_chinese,ext='png')
 
-random.shuffle(train_images)
+all_train_images = train_images_etl + train_images_traditional_chinese
+all_val_images = val_images_etl + val_images_traditional_chinese
+
+random.shuffle(all_train_images)
 # random.shuffle(val_images)
 
 home_dir = Path.home()
 home_path = os.fspath(home_dir)
-full_train_dir_path = os.path.join(home_path, train_dir)
-char_list = os.listdir(full_train_dir_path)
+full_train_dir_path_etl = os.path.join(home_path, train_dir_etl)
 
-label_dictionary = dict(zip(char_list, list(range(len(char_list)))))
+full_train_dir_path_traditional_chinese = os.path.join(home_path, train_dir_traditional_chinese)
+
+list_japanese_characters = os.listdir(full_train_dir_path_etl)
+list_traditional_chinese_characters = os.listdir(full_train_dir_path_traditional_chinese)
+
+all_characters_list = list_japanese_characters + list_traditional_chinese_characters
+list_unique_characters = list(set(all_characters_list))
+
+label_dictionary = dict(zip(list_unique_characters, list(range(len(list_unique_characters)))))
 
 # SAVE A DICTIONARY
 dict_ = dict()
@@ -72,8 +85,8 @@ train_tf_record_dir = os.path.join('tfrecords', 'train')
 val_tf_record_dir = os.path.join('tfrecords', 'val')
 num_samples = 1024
 
-write_tfrecords(train_images, train_tf_record_dir, label_dictionary, num_samples)
-write_tfrecords(val_images, val_tf_record_dir, label_dictionary, num_samples)
+write_tfrecords(all_train_images, train_tf_record_dir, label_dictionary, num_samples)
+write_tfrecords(all_val_images, val_tf_record_dir, label_dictionary, num_samples)
 
 # CHECK RECORDS SUCCESSFULLY CREATED
 
