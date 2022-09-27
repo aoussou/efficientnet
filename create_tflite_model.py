@@ -9,25 +9,26 @@ tflite_model = converter.convert()
 TFLITE_FILE_PATH = 'models/model.tflite'
 
 # Save the model.
-# with open('models/model.tflite', 'wb') as f:
-#     f.write(tflite_model)
-# f.close()
+with open('models/model.tflite', 'wb') as f:
+    f.write(tflite_model)
+f.close()
+
+image_path = "data/screenshot.png"
 
 interpreter = tf.lite.Interpreter(TFLITE_FILE_PATH)
 interpreter.allocate_tensors()
-
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
-image_path = "data/screenshot.png"
 image = tf.io.decode_jpeg(tf.io.read_file(image_path))
-image_slice = image[:, :, 0:-1]
-gray_scale_image = tf.image.rgb_to_grayscale(image_slice)
+image_without_alpha = image[:, :, 0:-1]
+gray_scale_image = tf.image.rgb_to_grayscale(image_without_alpha)
 resized_image = tf.image.resize(gray_scale_image, size=(224, 224))
 input_data = tf.expand_dims(resized_image, 0)
 
-interpreter.set_tensor(input_details[0]['index'], input_data)
+print(input_data.shape)
 
+interpreter.set_tensor(input_details['index'], input_data)
 interpreter.invoke()
-output_data = interpreter.get_tensor(output_details[0]['index'])
+output_data = interpreter.get_tensor(output_details['index'])
 print(np.argmax(output_data))
